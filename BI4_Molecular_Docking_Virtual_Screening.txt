@@ -1,0 +1,195 @@
+"""
+Practical 4 - Molecular Docking and Virtual Screening
+This script performs molecular docking simulations to predict binding affinity between protein targets and ligands,
+and conducts virtual screening to identify potential drug candidates.
+"""
+
+from Bio.PDB import PDBParser
+
+# First, identify ligands in the PDB file
+pdb_file = "5RGU.pdb"
+parser = PDBParser(QUIET=True)
+structure = parser.get_structure("protein", pdb_file)
+
+ligands = set()
+
+for model in structure:
+    for chain in model:
+        for residue in chain:
+            # HETATM residues are non-standard (ligands, ions)
+            if residue.id[0] != " ":
+                ligands.add(residue.resname)
+
+print("Ligands found in the PDB file:", ligands)
+
+# Main docking and virtual screening code
+import os
+import sys
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from Bio.PDB import PDBParser, PDBIO, Select
+from rdkit import Chem
+from rdkit.Chem import AllChem, DataStructs
+import py3Dmol
+
+import warnings
+warnings.filterwarnings("ignore")
+
+PDB_FILE = "5RGU.pdb"
+OUTPUT_DIR = "ligand_files"
+RESULT_CSV = "protein_ligand_docking_results.csv"
+
+IGNORE_RESIDUES = {"HOH", "WAT", "H2O", "NA", "CL", "CA", "K", "MG", "ZN", "MN", "SO4"}
+
+RDKIT_SEED = 42
+np.random.seed(42)
+
+class LigandSelect(Select):
+    def __init__(self, ligand_name):
+        self.ligand_name = ligand_name
+    def accept_residue(self, residue):
+        return residue.get_resname() == self.ligand_name
+
+parser = PDBParser(QUIET=True)
+try:
+    structure = parser.get_structure("protein", PDB_FILE)
+except Exception as e:
+    print(f"ERROR reading file: {e}")
+    sys.exit(1)
+
+ligands_found = []
+for model in structure:
+    for chain in model:
+        for residue in chain:
+            resname = residue.get_resname().strip()
+            if residue.id[0] != " " and resname not in IGNORE_RESIDUES:
+                if resname not in ligands_found:
+                    ligands_found.append(resname)
+
+print("Detected ligands:", ligands_found)
+if not ligands_found:
+    print("No valid ligands found. Exiting.")
+    sys.exit(0)
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+io = PDBIO()
+ligand_paths = []
+for lig in ligands_found:
+    outpath = os.path.join(OUTPUT_DIR, f"{lig}.pdb")
+    io.set_structure(structure)
+    io.save(outpath, LigandSelect(lig))
+    ligand_paths.append(outpath)
+
+rdkit_mols = []
+rdkit_names = []
+
+for path in ligand_paths:
+    name = os.path.basename(path).replace(".pdb", "")
+    mol = Chem.MolFromPDBFile(path, removeHs=False, sanitize=False)
+    if mol is None:
+        print(f"WARNING: Could not parse {path}")
+        continue
+    try:
+        Chem.SanitizeMol(mol)
+    except Exception:
+        try:
+            Chem.SanitizeMol(mol, Chem.SANITIZE_ALL ^ Chem.SANITIZE_PROPERTIES)
+        except Exception:
+            pass
+
+    mol = Chem.AddHs(mol, addCoords=True)
+    try:
+        params = AllChem.ETKDGv3()
+        params.randomSeed = RDKIT_SEED
+        res = AllChem.EmbedMolecule(mol, params)
+        if res != 0:
+            AllChem.EmbedMolecule(mol, AllChem.ETKDG())
+    except Exception as ex:
+        print(f"Embedding failed for {name}: {ex}")
+
+    try:
+        AllChem.MMFFOptimizeMolecule(mol)
+    except Exception:
+        pass
+
+    rdkit_mols.append(mol)
+    rdkit_names.append(name)
+
+if not rdkit_mols:
+    print("No ligands successfully converted. Exiting.")
+    sys.exit(0)
+
+fps = []
+for mol in rdkit_mols:
+    try:
+        fp = AllChem.GetMorganFingerprintAsBitVect(mol, radius=2, nBits=2048)
+    except Exception:
+        fp = AllChem.GetMorganFingerprintAsBitVect(Chem.RemoveHs(mol), radius=2, nBits=2048)
+    fps.append(fp)
+
+ref_fp = fps[0]
+ref_name = rdkit_names[0]
+
+def sim_to_score(sim, low=-4.0, high=-12.0):
+    return round(low + (high - low) * sim, 3)
+
+scores, sims = [], []
+for fp in fps:
+    sim = DataStructs.TanimotoSimilarity(ref_fp, fp)
+    sims.append(sim)
+    scores.append(sim_to_score(sim))
+
+results_df = pd.DataFrame({
+    "Ligand": rdkit_names,
+    f"Tanimoto_Similarity_to_{ref_name}": sims,
+    "Pseudo_Docking_Score_kcal_per_mol": scores
+}).sort_values("Pseudo_Docking_Score_kcal_per_mol").reset_index(drop=True)
+
+print("\n=== Docking / Virtual Screening Results ===")
+print(results_df)
+results_df.to_csv(RESULT_CSV, index=False)
+print(f"\nResults saved to {RESULT_CSV}")
+
+best_row = results_df.iloc[0]
+best_name = best_row["Ligand"]
+best_score = best_row["Pseudo_Docking_Score_kcal_per_mol"]
+
+print("\n=== BEST LIGAND ===")
+print(f"Ligand: {best_name}")
+print(f"Predicted Docking Score: {best_score} kcal/mol")
+print(f"Reference Ligand: {ref_name}")
+
+plt.figure(figsize=(max(6, len(results_df)*0.6), 4))
+sns.barplot(x="Ligand", y="Pseudo_Docking_Score_kcal_per_mol", data=results_df, palette="viridis")
+plt.xticks(rotation=45, ha="right")
+plt.title("Pseudo Docking Scores (lower = better)")
+plt.ylabel("Docking Score (kcal/mol)")
+plt.tight_layout()
+plt.show()
+
+best_file = os.path.join(OUTPUT_DIR, f"{best_name}.pdb")
+with open(PDB_FILE, "r") as f:
+    pdb_block = f.read()
+with open(best_file, "r") as f:
+    lig_block = f.read()
+
+view = py3Dmol.view(width=700, height=500)
+view.addModel(pdb_block, 'pdb')
+view.setStyle({'cartoon': {'color': 'spectrum'}})
+view.addModel(lig_block, 'pdb')
+view.setStyle({'model': 1}, {'stick': {'radius': 0.25, 'color': 'red'}})
+view.setBackgroundColor('0xeeeeee')
+view.zoomTo()
+view.show()
+
+sdf_out = "results.sdf"
+writer = Chem.SDWriter(sdf_out)
+for mol, name in zip(rdkit_mols, rdkit_names):
+    mol.SetProp("_Name", name)
+    writer.write(mol)
+writer.close()
+print(f"\nExtracted ligand SDF saved to {sdf_out}")
+

@@ -1,0 +1,170 @@
+================================================================================
+PRACTICAL 2: RNA-SEQ DIFFERENTIAL EXPRESSION ANALYSIS USING DESEQ2
+================================================================================
+
+OVERVIEW:
+---------
+This practical performs differential gene expression analysis on RNA-seq data 
+using DESeq2 (PyDESeq2 in Python). It identifies genes that are significantly 
+upregulated or downregulated between two conditions (e.g., Control vs Treatment).
+
+KEY CONCEPTS:
+-------------
+1. RNA-Seq: Sequencing technology that measures gene expression levels
+   - Produces count data (number of reads mapping to each gene)
+   - Used to compare gene expression between conditions
+
+2. Differential Expression: Finding genes with significantly different 
+   expression levels between conditions
+   - Upregulated: Higher expression in treatment
+   - Downregulated: Lower expression in treatment
+
+3. DESeq2: Statistical method for differential expression analysis
+   - Accounts for over-dispersion in count data
+   - Uses negative binomial distribution
+   - Performs normalization (size factors)
+   - Applies shrinkage to log fold changes
+
+4. Volcano Plot: Visualization showing:
+   - X-axis: Log2 Fold Change (magnitude of change)
+   - Y-axis: -log10(p-value) (statistical significance)
+   - Helps identify both significant and large-effect genes
+
+5. PCA (Principal Component Analysis): Dimensionality reduction technique
+   - Reduces high-dimensional data to 2D/3D for visualization
+   - Shows sample clustering by condition
+   - Helps identify batch effects or outliers
+
+METHODOLOGY:
+------------
+1. Load RNA-seq count data (genes × samples)
+2. Create metadata (sample conditions)
+3. Build DESeq2 dataset and run normalization
+4. Perform differential expression analysis (Wald test)
+5. Visualize results with volcano plot
+6. Perform PCA for sample clustering
+
+STATISTICAL CONCEPTS:
+---------------------
+- Log2 Fold Change: Log2(Treatment/Control) - measures effect size
+- P-value: Probability of observing data if null hypothesis is true
+- Adjusted P-value (padj): Multiple testing correction (FDR/Benjamini-Hochberg)
+- Base Mean: Average normalized count across all samples
+- LFC SE: Standard error of log fold change
+
+================================================================================
+VIVA QUESTIONS & ANSWERS:
+================================================================================
+
+Q1: What is RNA-seq and why is it important?
+A1: RNA-seq is a high-throughput sequencing technology that:
+    - Measures gene expression levels by counting RNA molecules
+    - Provides quantitative data on which genes are active
+    - Allows comparison between conditions (disease vs healthy, treated vs control)
+    - More sensitive and accurate than microarrays
+
+Q2: What is differential gene expression?
+A2: Differential gene expression identifies genes whose expression levels 
+    significantly differ between two or more conditions. This helps:
+    - Understand biological responses to treatments
+    - Identify disease markers
+    - Discover drug targets
+    - Study developmental processes
+
+Q3: Why do we use DESeq2 instead of simple t-tests?
+A3: DESeq2 is better because:
+    - RNA-seq data follows negative binomial distribution (not normal)
+    - Accounts for over-dispersion (variance > mean)
+    - Performs proper normalization for library size differences
+    - Applies shrinkage to reduce false positives
+    - Handles multiple testing correction
+
+Q4: What is normalization and why is it needed?
+A4: Normalization adjusts for:
+    - Different library sizes (total read counts per sample)
+    - Compositional differences between samples
+    - Technical variations
+    DESeq2 uses size factors (median ratio method) to normalize counts.
+
+Q5: What is a volcano plot and how do you interpret it?
+A5: A volcano plot shows:
+    - X-axis: Log2 Fold Change (biological significance)
+    - Y-axis: -log10(p-value) (statistical significance)
+    - Points in upper right/left: Significant AND large effect
+    - Points in upper middle: Significant but small effect
+    - Points at bottom: Not significant
+
+Q6: What is log2 fold change?
+A6: Log2 fold change = log2(Treatment/Control)
+    - Positive values: Upregulated in treatment
+    - Negative values: Downregulated in treatment
+    - Log2(2) = 1 means 2-fold increase
+    - Log2(0.5) = -1 means 2-fold decrease
+
+Q7: What is the difference between p-value and adjusted p-value?
+A7: - P-value: Probability of false positive for a single test
+    - Adjusted p-value (padj): Corrected for multiple testing
+    - When testing thousands of genes, many false positives occur
+    - FDR (False Discovery Rate) correction reduces this
+    - padj < 0.05 is the standard threshold
+
+Q8: What is PCA and why is it used in RNA-seq analysis?
+A8: PCA (Principal Component Analysis):
+    - Reduces high-dimensional gene expression data to 2D/3D
+    - Shows how samples cluster by condition
+    - Identifies batch effects or outliers
+    - Validates experimental design
+    - Helps visualize data quality
+
+Q9: What are the assumptions of DESeq2?
+A9: DESeq2 assumes:
+    - Count data follows negative binomial distribution
+    - Most genes are not differentially expressed
+    - Variance increases with mean expression
+    - Samples are independent
+    - No extreme outliers
+
+Q10: How do you interpret DESeq2 results?
+A10: Key columns:
+     - baseMean: Average normalized expression
+     - log2FoldChange: Effect size (positive = up, negative = down)
+     - lfcSE: Standard error of fold change
+     - pvalue: Raw p-value
+     - padj: Adjusted p-value (use this for significance)
+     Significant genes: padj < 0.05 and |log2FC| > 1 (typically)
+
+Q11: What is the Wald test?
+A11: The Wald test is a statistical test used in DESeq2 to:
+     - Test if log fold change is significantly different from zero
+     - Uses the estimated fold change and its standard error
+     - More appropriate for count data than t-tests
+
+Q12: What are size factors in DESeq2?
+A12: Size factors normalize for:
+     - Different sequencing depths between samples
+     - Calculated using median ratio method
+     - Each sample gets a size factor
+     - Normalized counts = raw counts / size factor
+
+================================================================================
+COMMON ERRORS & TROUBLESHOOTING:
+================================================================================
+1. Design formula errors: Ensure metadata matches sample names
+2. Low sample size: DESeq2 needs at least 3 replicates per condition
+3. All zeros: Genes with zero counts in all samples are removed
+4. Convergence issues: May need to adjust dispersion estimation
+5. Memory issues: Large datasets may require more RAM
+
+================================================================================
+EXTENSIONS & ADVANCED TOPICS:
+================================================================================
+- Time-series analysis
+- Multiple factor designs
+- Interaction terms
+- Gene set enrichment analysis (GSEA)
+- Pathway analysis
+- Heatmaps and clustering
+- Batch effect correction
+
+================================================================================
+

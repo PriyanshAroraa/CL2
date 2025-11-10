@@ -1,0 +1,218 @@
+================================================================================
+PRACTICAL 6: GWAS ANALYSIS FOR CROP TRAITS AND GENETIC MARKERS
+================================================================================
+
+OVERVIEW:
+---------
+This practical performs Genome-Wide Association Study (GWAS) to identify genetic 
+markers (SNPs) associated with desirable crop traits such as disease resistance 
+or yield. It demonstrates how to link genetic variation to phenotypic traits.
+
+KEY CONCEPTS:
+-------------
+1. GWAS (Genome-Wide Association Study): Method to find genetic variants 
+   associated with traits
+   - Tests association between SNPs and phenotypes
+   - Identifies genetic markers for traits
+   - Used in crop breeding and human genetics
+
+2. SNP (Single Nucleotide Polymorphism): Genetic variation at single position
+   - Most common type of genetic variation
+   - Can have 0, 1, or 2 copies of variant allele
+   - Coded as 0, 1, 2 (genotype)
+   - Millions of SNPs across genome
+
+3. Phenotype: Observable trait (e.g., yield, disease resistance)
+   - What we want to predict or understand
+   - Measured in field or lab
+   - Can be quantitative (continuous) or qualitative (discrete)
+
+4. Manhattan Plot: Visualization of GWAS results
+   - X-axis: SNP position along genome
+   - Y-axis: -log10(p-value) (statistical significance)
+   - Each point is a SNP
+   - Peaks indicate significant associations
+
+5. Bonferroni Correction: Multiple testing correction
+   - Adjusts p-value threshold for multiple tests
+   - Threshold = 0.05 / number of SNPs tested
+   - Prevents false positives
+   - Very conservative
+
+6. Linear Regression: Statistical method for GWAS
+   - Tests if SNP genotype predicts phenotype
+   - Phenotype ~ SNP genotype
+   - P-value indicates significance of association
+
+METHODOLOGY:
+------------
+1. Load phenotype data (trait measurements)
+2. Simulate or load SNP genotype data (0, 1, 2)
+3. For each trait:
+   - Run linear regression: Phenotype ~ SNP
+   - Calculate p-value for each SNP
+   - Create Manhattan plot
+   - Identify significant SNPs (below threshold)
+4. Save results and visualize
+
+STATISTICAL CONCEPTS:
+---------------------
+- P-value: Probability of observing data if no association exists
+- Multiple testing: Testing thousands of SNPs requires correction
+- Effect size: How much SNP affects trait
+- Linkage disequilibrium: SNPs near each other are correlated
+
+================================================================================
+VIVA QUESTIONS & ANSWERS:
+================================================================================
+
+Q1: What is GWAS?
+A1: GWAS (Genome-Wide Association Study) is:
+    - Method to find genetic variants associated with traits
+    - Tests association between SNPs and phenotypes
+    - Scans entire genome for associations
+    - Used in crop breeding, human genetics, livestock improvement
+
+Q2: What is a SNP?
+A2: SNP (Single Nucleotide Polymorphism) is:
+    - Genetic variation at a single DNA position
+    - Most common type of genetic variation
+    - Example: A vs G at a specific position
+    - Coded as 0, 1, or 2 (number of variant alleles)
+    - Millions exist across genome
+
+Q3: What is a phenotype?
+A3: Phenotype is:
+    - Observable trait or characteristic
+    - Examples: yield, disease resistance, height, oil content
+    - What we measure in field or lab
+    - Can be quantitative (continuous) or qualitative (discrete)
+    - Result of genotype + environment
+
+Q4: Why is GWAS important in crop breeding?
+A4: GWAS helps:
+    - Identify genetic markers for desirable traits
+    - Accelerate breeding programs
+    - Select best parents for crossing
+    - Understand genetic basis of traits
+    - Develop marker-assisted selection
+
+Q5: What is a Manhattan plot?
+A5: Manhattan plot is:
+    - Visualization of GWAS results
+    - X-axis: SNP position along genome
+    - Y-axis: -log10(p-value) (statistical significance)
+    - Each point represents a SNP
+    - Peaks indicate significant associations
+    - Named for skyscraper-like appearance
+
+Q6: What is Bonferroni correction?
+A6: Bonferroni correction:
+    - Adjusts p-value threshold for multiple testing
+    - Formula: threshold = 0.05 / number of tests
+    - Prevents false positives
+    - Very conservative (may miss true associations)
+    - Example: 5000 SNPs → threshold = 0.05/5000 = 0.00001
+
+Q7: How does linear regression work in GWAS?
+A7: Linear regression in GWAS:
+    - Tests: Phenotype = β₀ + β₁ × SNP + error
+    - β₁ measures effect of SNP on phenotype
+    - P-value tests if β₁ is significantly different from zero
+    - Significant p-value indicates association
+    - Run separately for each SNP
+
+Q8: What is the difference between genotype and phenotype?
+A8: Genotype:
+     - Genetic makeup (DNA sequence, SNPs)
+     - What genes/variants an individual has
+     - Measured by sequencing or genotyping
+    Phenotype:
+     - Observable trait (yield, disease resistance)
+     - What we see or measure
+     - Result of genotype + environment
+
+Q9: What are significant SNPs?
+A9: Significant SNPs are:
+    - SNPs with p-value below threshold (after correction)
+    - Associated with the trait
+    - Can be used as genetic markers
+    - May be causal or in linkage disequilibrium with causal variant
+    - Validated in independent populations
+
+Q10: What is linkage disequilibrium (LD)?
+A10: Linkage disequilibrium:
+     - Non-random association of alleles at different loci
+     - SNPs near each other are correlated
+     - GWAS may identify SNP in LD with causal variant
+     - Important for fine-mapping causal variants
+     - Varies by population and genomic region
+
+Q11: What is effect size in GWAS?
+A11: Effect size:
+     - How much a SNP affects the trait
+     - Measured by regression coefficient (β)
+     - Large effect: SNP explains much variation
+     - Small effect: SNP explains little variation
+     - Most traits are polygenic (many small effects)
+
+Q12: Why do we need multiple testing correction?
+A12: Multiple testing correction:
+     - Testing thousands of SNPs increases false positives
+     - Without correction: 5% false positive rate per test
+     - With 5000 tests: ~250 false positives expected
+     - Correction reduces false positives
+     - Trade-off: May miss true associations (reduced power)
+
+Q13: What is the difference between GWAS and QTL mapping?
+A13: GWAS:
+     - Uses natural populations
+     - Tests many unrelated individuals
+     - High resolution (can find specific SNPs)
+     - Requires large sample sizes
+    QTL mapping:
+     - Uses controlled crosses (families)
+     - Tests related individuals
+     - Lower resolution (identifies regions)
+     - Can work with smaller samples
+
+Q14: How are GWAS results used in breeding?
+A14: GWAS results enable:
+     - Marker-assisted selection (select plants with good markers)
+     - Genomic selection (predict breeding value)
+     - Parent selection (choose best parents)
+     - Understanding trait genetics
+     - Accelerating breeding cycles
+
+Q15: What are the limitations of GWAS?
+A15: Limitations:
+     - Requires large sample sizes
+     - May miss rare variants
+     - Associations may not be causal
+     - Population-specific (results may not transfer)
+     - Environment × genotype interactions not always captured
+     - Multiple testing reduces power
+
+================================================================================
+COMMON ERRORS & TROUBLESHOOTING:
+================================================================================
+1. No significant SNPs: May need larger sample size or different threshold
+2. Missing data: Handle missing genotypes/phenotypes appropriately
+3. Population structure: May need to account for population stratification
+4. Multiple traits: Run separate GWAS for each trait
+5. Memory issues: Large SNP datasets require significant RAM
+
+================================================================================
+EXTENSIONS & ADVANCED TOPICS:
+================================================================================
+- Population structure correction (PCA, mixed models)
+- Genomic selection
+- Multi-trait GWAS
+- Epistasis (gene × gene interactions)
+- Gene × environment interactions
+- Fine-mapping causal variants
+- Functional annotation of significant SNPs
+- Pathway enrichment analysis
+
+================================================================================
+

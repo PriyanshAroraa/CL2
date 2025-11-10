@@ -1,0 +1,112 @@
+"""
+Practical 2 - RNA-Seq Differential Expression Analysis using DESeq2
+This script performs differential gene expression analysis on RNA-seq data using PyDESeq2.
+"""
+
+# Import required libraries
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.decomposition import PCA
+
+# PyDESeq2 (DESeq2 implementation in Python)
+from pydeseq2.utils import load_example_data
+from pydeseq2.dds import DeseqDataSet
+from pydeseq2.ds import DeseqStats   # <-- corrected import for v0.5.2
+
+# ================================
+# 1. Load Example Dataset
+# ================================
+counts_df = load_example_data()
+
+# Transpose to samples × genes (important for PyDESeq2)
+counts_df = counts_df.T  
+
+# Build metadata: one row per sample
+conditions = ['Control'] * (counts_df.shape[0] // 2) + ['Treatment'] * (counts_df.shape[0] - counts_df.shape[0] // 2)
+metadata_df = pd.DataFrame({'condition': conditions}, index=counts_df.index)
+
+# Duplicate samples to increase sample size (testing only)
+counts_df = pd.concat([counts_df, counts_df], axis=0)
+metadata_df = pd.concat([metadata_df, metadata_df], axis=0)
+
+# (Optional) Rename indices to avoid duplicates
+counts_df.index = [f"sample_{i}" for i in range(counts_df.shape[0])]
+metadata_df.index = counts_df.index
+
+print("Counts shape:", counts_df.shape)   # now larger
+print("Metadata shape:", metadata_df.shape)
+
+print("Counts data (first 5 rows):")
+print(counts_df.head())
+
+print("\nMetadata:")
+print(metadata_df.head())
+
+# ================================
+# 2. Create DESeq2 Dataset and Run Analysis
+# ================================
+dds = DeseqDataSet(
+    counts=counts_df,
+    metadata=metadata_df,
+    design_factors="condition"  # or design="~ condition"
+)
+dds.deseq2()
+
+# ================================
+# 3. Differential Expression Analysis
+# ================================
+# Compare Treatment vs Control
+stat_res = DeseqStats(dds, contrast=["condition", "Treatment", "Control"])
+stat_res.summary()  # prints result summary
+
+# Get results as a DataFrame
+results_df = stat_res.results_df
+print("\nDifferential Expression Results (first 10 rows):")
+print(results_df.head(10))
+
+# ================================
+# 4. Volcano Plot
+# ================================
+plt.figure(figsize=(10, 6))
+sns.scatterplot(
+    data=results_df,
+    x="log2FoldChange", 
+    y=-np.log10(results_df["pvalue"]),
+    hue=results_df["padj"] < 0.05,
+    palette={True: "red", False: "grey"},
+    alpha=0.7
+)
+
+# Add cutoffs
+plt.axhline(-np.log10(0.05), color="blue", linestyle="--", label="p = 0.05")
+plt.axvline(-1, color="green", linestyle="--", label="log2FC = -1")
+plt.axvline(1, color="green", linestyle="--", label="log2FC = +1")
+
+plt.xlabel("Log2 Fold Change")
+plt.ylabel("-log10(p-value)")
+plt.title("Volcano Plot of Differential Gene Expression (DESeq2)")
+plt.legend()
+plt.show()
+
+# ================================
+# 5. PCA Plot of Samples
+# ================================
+# Log-transform counts (add 1 to avoid log(0))
+norm_counts = np.log2(counts_df + 1)
+
+# Run PCA
+pca = PCA(n_components=2)
+pc = pca.fit_transform(norm_counts)
+
+# Create DataFrame for plotting
+pca_df = pd.DataFrame(pc, columns=["PC1", "PC2"], index=counts_df.index)
+pca_df["Condition"] = metadata_df["condition"]
+
+# Plot PCA
+plt.figure(figsize=(8,6))
+sns.scatterplot(data=pca_df, x="PC1", y="PC2", hue="Condition", s=100)
+plt.title("PCA of RNA-seq Samples (log2-transformed counts)")
+plt.show()
+

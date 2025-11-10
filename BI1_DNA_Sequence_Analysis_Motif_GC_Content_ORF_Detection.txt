@@ -1,0 +1,48 @@
+"""
+Practical 1 - DNA Sequence Analysis: Motif Finding, GC Content Calculation, and ORF Detection
+This script analyzes DNA sequences to find motifs, calculate GC content, and identify coding regions.
+"""
+
+from Bio.Seq import Seq
+from Bio.SeqUtils import gc_fraction
+import pandas as pd
+
+# Update path to use current directory
+df = pd.read_csv("human datset.txt", sep="\t")
+
+results = []
+
+for idx, row in df.iterrows():
+    sequence = Seq(row["sequence"])   # convert to Biopython Seq object
+
+    # 1. Finding motifs
+    motif = "ATG"
+    positions = [i+1 for i in range(len(sequence)-len(motif)+1)
+                 if sequence[i:i+len(motif)] == motif]
+
+    # 2. Calculating GC content
+    GC_content = gc_fraction(sequence) * 100
+
+    # 3. Identifying coding region (first ORF only)
+    start = sequence.find("ATG")
+    stop_codons = ["TAA", "TAG", "TGA"]
+    coding_region = ""
+    if start != -1:
+        for i in range(start + 3, len(sequence), 3):
+            if sequence[i:i+3] in stop_codons:
+                coding_region = sequence[start:i+3]
+                break
+
+    # Store results
+    results.append({
+        "Index": idx,
+        "Class": row["class"],
+        "GC_Content(%)": round(GC_content, 2),
+        "Motif_Positions(ATG)": positions if positions else "None",
+        "Coding_Region": str(coding_region) if coding_region else "None"
+    })
+
+# Convert to DataFrame and display
+results_df = pd.DataFrame(results)
+print(results_df)
+

@@ -1,0 +1,122 @@
+"""
+Practical 6 - GWAS Analysis for Crop Traits and Genetic Markers
+This script performs Genome-Wide Association Study (GWAS) to identify genetic markers associated with crop traits.
+"""
+
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+import os
+
+# ---------- Config ----------
+PHENOS_PATH = "Phenos.csv"
+OUT_DIR = "gwas_results"
+N_SNPS = 5000
+# Use the actual column names from your CSV file
+TRAITS = ["TGW", "PTH", "OIL", "PRT"]
+np.random.seed(42)
+# ----------------------------
+
+os.makedirs(OUT_DIR, exist_ok=True)
+
+# Load phenotype data
+# Add skiprows=2 to ignore the first two rows of the file
+phenos = pd.read_csv(PHENOS_PATH, encoding='latin1', skiprows=2).reset_index(drop=True)
+
+# Check traits exist
+for t in TRAITS:
+    if t not in phenos.columns:
+        raise ValueError(f"Trait '{t}' not found in phenos.csv. Columns: {phenos.columns.tolist()}")
+
+n_samples = phenos.shape[0]
+print(f"Samples: {n_samples}, Traits: {TRAITS}, Simulating {N_SNPS} SNPs...")
+
+# Simulate SNP matrix (0,1,2) — rows = samples, cols = SNPs
+G = pd.DataFrame(
+    np.random.randint(0, 3, size=(n_samples, N_SNPS)),
+    columns=[f"SNP_{i+1}" for i in range(N_SNPS)]
+)
+
+# CORRECTED: The keys in this dictionary now match the TRAITS list.
+causal_snps_for_trait = {
+    "YLD_H_adj": [10, 150, 1800],
+    "PH_H_adj": [50, 900, 2400],
+    "TGW_H_adj": [5, 1200, 3500]
+}
+effect_sizes = [3.5, 5.0, 4.0]  # effect sizes to inject (one per causal SNP)
+
+# Create simulated phenotypes by adding genetic effects onto real phenotypes
+phenotype_sim = {}
+for trait in TRAITS:
+    # MODIFIED: Added .fillna() to prevent errors from empty cells in the CSV.
+    base = phenos[trait].fillna(phenos[trait].mean()).astype(float).copy()
+    for i, s in enumerate(causal_snps_for_trait.get(trait, [])):
+        base = base + G.iloc[:, s] * effect_sizes[i]
+    phenotype_sim[trait] = base
+
+
+def run_gwas(trait_series, G_df):
+    """Run GWAS for a single trait"""
+    results = []
+    
+    for snp in G_df.columns:
+        X = sm.add_constant(G_df[snp])        # intercept + SNP
+        model = sm.OLS(trait_series, X).fit()
+        pval = model.pvalues.get(snp, np.nan)
+        results.append((snp, pval))
+    gwas_df = pd.DataFrame(results, columns=["SNP", "p"])
+    gwas_df["-log10(p)"] = -np.log10(gwas_df["p"])
+    gwas_df["Pos"] = range(len(gwas_df))
+    return gwas_df
+
+
+all_significant = {}
+for trait in TRAITS:
+    print(f"\nRunning GWAS for trait: {trait}")
+    trait_series = phenotype_sim[trait]
+    gwas_df = run_gwas(trait_series, G)
+    
+    threshold = -np.log10(0.05 / N_SNPS)
+    print(f"Bonferroni threshold (−log10): {threshold:.2f}")
+
+    # Save GWAS table
+    gwas_csv = os.path.join(OUT_DIR, f"gwas_{trait}.csv")
+    gwas_df.to_csv(gwas_csv, index=False)
+    print(f"Saved GWAS table to: {gwas_csv}")
+
+    # Plot Manhattan plot interactively
+    plt.figure(figsize=(12,5))
+    plt.scatter(gwas_df["Pos"], gwas_df["-log10(p)"], s=10, alpha=0.7)
+    plt.axhline(threshold, linestyle="--", color='red')
+    plt.title(f"Manhattan plot for {trait}")
+    plt.xlabel("SNP position")
+    plt.ylabel("-log10(p-value)")
+    plt.tight_layout()
+    plt.show()
+
+    # Save significant SNPs
+    sig = gwas_df[gwas_df["-log10(p)"] > threshold].copy().sort_values("-log10(p)", ascending=False)
+    sig_csv = os.path.join(OUT_DIR, f"significant_snps_{trait}.csv")
+    sig.to_csv(sig_csv, index=False)
+    all_significant[trait] = sig
+    print(f"Significant SNPs: {len(sig)}  (saved to {sig_csv})")
+
+
+# Combine top significant SNPs across traits
+combined_list = []
+for trait, df in all_significant.items():
+    if not df.empty:
+        top = df.head(50).copy()
+        top["Trait"] = trait
+        combined_list.append(top[["Trait","SNP","p","-log10(p)","Pos"]])
+if combined_list:
+    combined_df = pd.concat(combined_list, ignore_index=True)
+    combined_csv = os.path.join(OUT_DIR, "combined_significant_snps.csv")
+    combined_df.to_csv(combined_csv, index=False)
+    print(f"\nCombined significant SNPs saved to: {combined_csv}")
+else:
+    print("\nNo significant SNPs across analyzed traits.")
+
+print(f"\nAll results saved to folder: {OUT_DIR}")
+
