@@ -94,7 +94,7 @@ Simply navigate to the `initial/` folder and copy the code from the `.txt` files
 pip install biopython pandas numpy matplotlib seaborn scikit-learn pydeseq2 rdkit py3dmol statsmodels
 ```
 
-## License
+## License - 1 
 
 This repository contains educational materials for bioinformatics practicals.
 
